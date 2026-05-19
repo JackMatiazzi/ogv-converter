@@ -9,7 +9,9 @@ export class FFmpegLoadError extends Error {
   }
 }
 
-const CORE_BASE_URL = `${import.meta.env.BASE_URL}ffmpeg`
+const CORE_BASE_URL = import.meta.env.PROD
+  ? 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm'
+  : `${import.meta.env.BASE_URL}ffmpeg`
 
 let instance: FFmpeg | null = null
 let loading: Promise<FFmpeg> | null = null

@@ -6,6 +6,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const src = resolve(root, 'node_modules/@ffmpeg/core/dist/esm')
 const dest = resolve(root, 'public/ffmpeg')
 
+if (process.env.CI || process.env.CF_PAGES) {
+  console.log('[prebuild] CI environment - skipping wasm copy (using CDN)')
+  process.exit(0)
+}
+
 const required = ['ffmpeg-core.js', 'ffmpeg-core.wasm']
 
 for (const file of required) {
