@@ -2,8 +2,11 @@ import { useCallback, useState } from 'react'
 import { Dropzone } from './components/Dropzone'
 import { Progress } from './components/Progress'
 import { Result } from './components/Result'
-import { convert } from './ffmpeg/convert'
+import { ConversionError, convert } from './ffmpeg/convert'
+import { FFmpegLoadError } from './ffmpeg/loader'
 import { detect, outputName } from './media/detect'
+
+const FILE_SIZE_LIMIT = 500 * 1024 * 1024
 
 type State =
   | { status: 'idle' }
@@ -13,8 +16,11 @@ type State =
 
 const MESSAGES = {
   unsupported: 'formato não suportado',
+  tooLarge: 'arquivo muito grande (máx 500 MB)',
   loading: 'carregando…',
   converting: 'convertendo…',
+  loadFailed: 'erro ao carregar o conversor',
+  convertFailed: 'não foi possível converter este arquivo',
   failed: 'algo deu errado',
 } as const
 
@@ -31,6 +37,11 @@ export function App() {
       return
     }
 
+    if (file.size > FILE_SIZE_LIMIT) {
+      setState({ status: 'error', message: MESSAGES.tooLarge })
+      return
+    }
+
     setState({ status: 'converting', label: MESSAGES.loading, ratio: 0 })
 
     try {
@@ -41,8 +52,15 @@ export function App() {
 
       setState({ status: 'done', blob, filename })
     } catch (error) {
-      console.error('Conversion failed:', error)
-      setState({ status: 'error', message: MESSAGES.failed })
+      console.error('[ogv] pipeline error:', error)
+
+      if (error instanceof FFmpegLoadError) {
+        setState({ status: 'error', message: MESSAGES.loadFailed })
+      } else if (error instanceof ConversionError) {
+        setState({ status: 'error', message: MESSAGES.convertFailed })
+      } else {
+        setState({ status: 'error', message: MESSAGES.failed })
+      }
     }
   }, [])
 

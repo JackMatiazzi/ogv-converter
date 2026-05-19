@@ -1,6 +1,15 @@
+import type { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
 import type { MediaKind } from '../media/detect'
 import { clearFFmpegProgressHandler, getFFmpeg } from './loader'
+
+export class ConversionError extends Error {
+  constructor(cause?: unknown) {
+    super('conversion failed')
+    this.name = 'ConversionError'
+    this.cause = cause
+  }
+}
 
 export async function convert(
   file: File,
@@ -19,14 +28,17 @@ export async function convert(
     const mime = kind === 'video' ? 'video/ogg' : 'audio/ogg'
 
     if (!(data instanceof Uint8Array)) {
-      throw new Error('Unexpected FFmpeg output type.')
+      throw new ConversionError('unexpected ffmpeg output type')
     }
 
     return new Blob([data.slice()], { type: mime })
+  } catch (error) {
+    if (error instanceof ConversionError) throw error
+    throw new ConversionError(error)
   } finally {
     clearFFmpegProgressHandler()
-    await deleteIfExists(inputName)
-    await deleteIfExists(outputFilename)
+    await deleteIfExists(ffmpeg, inputName)
+    await deleteIfExists(ffmpeg, outputFilename)
   }
 }
 
@@ -55,10 +67,10 @@ export function createFFmpegArgs(kind: MediaKind, inputName: string, outputFilen
   return ['-i', inputName, '-c:a', 'libvorbis', '-q:a', '5', outputFilename]
 }
 
-async function deleteIfExists(filename: string) {
+async function deleteIfExists(ffmpeg: FFmpeg, filename: string) {
   try {
-    const ffmpeg = await getFFmpeg()
     await ffmpeg.deleteFile(filename)
-  } catch {
+  } catch (err) {
+    console.warn('[ogv] cleanup failed for', filename, err)
   }
 }

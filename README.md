@@ -31,6 +31,12 @@ npm run ci
 npm run build
 ```
 
+Para deploy em subdiretório (ex: `dominio.com/tools/ogv`), defina antes do build:
+
+```bash
+VITE_BASE_PATH=/tools/ogv/ npm run build
+```
+
 ## Estrutura
 
 - `src/components`: componentes da interface

@@ -1,6 +1,14 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { toBlobURL } from '@ffmpeg/util'
 
+export class FFmpegLoadError extends Error {
+  constructor(cause?: unknown) {
+    super('ffmpeg load failed')
+    this.name = 'FFmpegLoadError'
+    this.cause = cause
+  }
+}
+
 const CORE_BASE_URL = `${import.meta.env.BASE_URL}ffmpeg`
 
 let instance: FFmpeg | null = null
@@ -21,7 +29,7 @@ export async function getFFmpeg(onProgress?: (ratio: number) => void): Promise<F
     .catch((error) => {
       loading = null
       progressHandler = null
-      throw error
+      throw new FFmpegLoadError(error)
     })
 
   return loading
